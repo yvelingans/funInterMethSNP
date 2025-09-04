@@ -1,0 +1,261 @@
+---
+title: "Detecting SNP–Methylation Interactions on phenotypes with funInterMethSNP"
+author:
+  - name: Yvelin Gansou
+    affiliation: Université Laval, Québec, Canada
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+    number_sections: false
+bibliography: funInterMethSNP.bib
+vignette: >
+  %\VignetteIndexEntry{Detecting SNP–Methylation Interactions on phenotypes with funInterMethSNP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+date: "`r Sys.Date()`"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+```{r setup}
+library(funInterMethSNP)
+```
+
+# Installation 
+
+
+The `funInterMethSNP`  package can be installed from GitHub using :
+
+```{r, eval=FALSE}
+# install.packages("devtools")
+devtools::install_github("yvelingans/funInterMethSNP")
+```
+
+# Introduction
+
+**funInterMethSNP** aims to test the overall interaction effect between DNA methylation profiles  and SNP genotypes (treated as discrete variables), for outcomes that are continuous, binary, or belong to the exponential family (e.g., Poisson). To achieve this, we model methylation data as functional variable and develop flexible functional regression models capable of capturing their interactions with SNPs.
+
+Major advantages of **funInterMethSNP** include:
+- Avoiding multiple testing by assessing the global SNP–CpG interaction effect rather than testing each SNP–CpG pair separately.
+- Accounting for spatial correlations between methylation values of neighboring CpG sites.
+- Enabling flexible detection of interaction effects using a parameter $\rho$ that controls the window of CpG sites around each SNP, thereby allowing stronger weighting of nearby CpGs and emphasizing localized effects.
+
+For a more comprehensive introduction to the **funInterMethSNP** approach, please refer to our paper [@gansou2025].
+
+
+It implements the following functions : 
+- `estim_methyl_curve()`
+- `fitMethSNPfunctInter_continu()`  
+- `fitMethSNPfunctInter_generalized()`  
+- `fitMethSNPfunctInter_ordinal()` *(coming soon)*
+
+These functions rely on generalized additive  models  to estimate effects and test the global interaction through either a Wald test or a likelihood ratio test.
+
+# Application
+
+Throughout this vignette, we illustrate the **funInterMethSNP** approach using example datasets derived from the real dataset GSE73103, available on GEO. For more details about the dataset, see [@voisin2015many].
+
+
+# Input data
+
+To illustrate the capabilities of the **funInterMethSNP** package, we provide several example datasets that include both real and simulated components. These datasets are loaded using the `data(...)` function.
+
+- The response vector `resp_continu` is a continuous variable, simulated under our proposed model using chosen parameter values.  
+- The DNA methylation data `data_methylation_raw` consists of real beta values ranging between 0 and 1, extracted from the public dataset GSE73103 (available on GEO).
+- The genotype matrix `mat_snp` contains SNP genotypes coded as 0, 1, or 2. It is also derived from the GSE73103 dataset.
+- The covariate matrix `mat_covar` includes potential confounders such as age and sex, based on real data from the same study.
+
+To demonstrate the use of our model in a binary context, we also provide `resp_binaire`, a dichotomized response variable indicating obesity status: 0 for normal weight and 1 for overweight or obese individuals. This variable was derived from the weight data in GSE73103.
+
+Lastly, to illustrate our model with other members of the exponential family, we include a Poisson-type response variable `resp_pois`. This variable was simulated based on our model.
+
+These datasets can be loaded and previewed as follows:
+
+```{r load_data}
+data(data_methylation_raw)
+data(mat_snp)
+data(mat_covar)
+data(resp_continu)
+data(resp_pois)
+data(resp_binaire)
+
+head(data_methylation_raw[,1:10])
+head(mat_snp)
+head(mat_covar)
+```
+
+The functions implemented in **funInterMethSNP** rely on the penalized regression framework provided by the functions gamm() and gam() from the mgcv package [@wood2015package].
+ 
+# Analysis and result 
+
+The package `funInterMethSNP` provides functions to fit functional regression models with SNP–methylation interactions.  
+The typical workflow includes:
+
+1. **Reconstruction of methylation curves** using `estim_methyl_curve()`.  
+2. **Model fitting** with:
+   - `fitMethSNPfunctInter_continu()` for continuous outcomes,  
+   - `fitMethSNPfunctInter_generalized()` for binary and count outcomes.  
+
+## Example: reconstruct methylation curves
+
+```{r, eval=FALSE}
+mat_methyl <- estim_methyl_curve(
+  mat_methylation_raw = data_methylation_raw,
+  region_range = c(min(data_methylation_raw$Position),
+                   max(data_methylation_raw$Position))
+)
+```
+
+---
+
+
+
+## Continuous outcome
+
+We first illustrate the continuous case with a response vector `resp_continu`:
+
+```{r, eval=FALSE}
+fit_cont <- fitMethSNPfunctInter_continu(
+  Y = resp_continu,
+  W = mat_covar,
+  G = mat_snp,
+  mat_methyl = mat_methyl,
+  pos_snp = pos_snp,
+  rho = 10,
+  nb_fct = 10,
+  kernel_name = "convex",
+  region_range = c(min(data_methylation_raw$Position),
+                   max(data_methylation_raw$Position)),
+  RGN = seq(0, 1, length.out = ncol(mat_methyl))
+)
+
+# Inspect results
+summary(fit_cont$object_gam)
+plot(fit_cont$object_gam)
+```
+
+### Interpretation
+
+Running the code above yields, for instance :
+
+- `fit_cont$pvalue`: Global interaction p-value = **0.017**, suggesting a significant interaction effect between methylation profiles and SNPs.  
+- Estimated smoothing parameter: \(\lambda \approx 10.84\)  
+- Residual variance: \(\sigma^2 \approx 5.28\)  
+- Interaction coefficients \(\eta_d\):  
+  - `inter_meth_rs984222`: 180.62  
+  - `inter_meth_rs2815752`: 67.24  
+  - `inter_meth_rs3934834`: 1173.54  
+  - `inter_meth_rs1514175`: 24.15  
+  - `inter_meth_rs10783050`: −21.92  
+
+These values indicate heterogeneity across SNPs, with SNP *rs3934834* showing the strongest effect among the SNPs.
+
+Users can also further inspect the model:  
+
+```{r, eval=FALSE}
+summary(fit_cont$object_gam)  # individual parameter testing
+plot(fit_cont$object_gam)     # functional effect of methylation
+```
+
+## Binary outcome
+
+For a binary phenotype (`resp_binaire`), we use the logistic link:
+
+```{r, eval=FALSE}
+fit_bin <- fitMethSNPfunctInter_generalized(
+  Y = resp_binaire,
+  W = mat_covar,
+  G = mat_snp,
+  mat_methyl = mat_methyl,
+  pos_snp = pos_snp,
+  family = binomial(link = "logit"),
+  rho = 10,
+  nb_fct = 10,
+  kernel_name = "convex",
+  region_range = c(min(data_methylation_raw$Position),
+                   max(data_methylation_raw$Position)),
+  RGN = seq(0, 1, length.out = ncol(mat_methyl))
+)
+
+# Inspect results
+summary(fit_bin$object_gam)
+plot(fit_bin$object_gam)
+```
+
+
+
+### Interpretation
+
+Running the code above yields, for instance :
+
+- `fit_bin$pvalue`: Likelihood ratio test p-value = **0.013**, indicating a significant global interaction effect between methylation profiles and SNPs on obesity risk.  
+- Estimated smoothing parameter: \(\lambda \approx 1.33\)  
+- Interaction coefficients \(\eta_d\):  
+  - `inter_meth_rs984222`: 248.63  
+  - `inter_meth_rs2815752`: 99.10  
+  - `inter_meth_rs3934834`: 1269.77  
+  - `inter_meth_rs1514175`: 23.07  
+  - `inter_meth_rs10783050`: −41.36  
+
+These estimates reveal substantial variability in the magnitude and direction of SNP–methylation interaction effects. In particular, SNP *rs3934834* again shows the strongest contribution.  
+
+Users can further explore the fitted model with:  
+
+```{r, eval=FALSE}
+summary(fit_bin$object_gam)  # individual parameter statistics
+plot(fit_bin$object_gam)     # functional interaction curve
+```
+
+
+---
+
+## Poisson outcome
+
+Finally, we consider a simulated count response (`resp_pois`):
+
+```{r, eval=FALSE}
+fit_pois <- fitMethSNPfunctInter_generalized(
+  Y = resp_pois,
+  W = mat_covar,
+  G = mat_snp,
+  mat_methyl = mat_methyl,
+  pos_snp = pos_snp,
+  family = poisson(link = "log"),
+  rho = 10,
+  nb_fct = 10,
+  kernel_name = "convex",
+  region_range = c(min(data_methylation_raw$Position),
+                   max(data_methylation_raw$Position)),
+  RGN = seq(0, 1, length.out = ncol(mat_methyl))
+)
+
+# Inspect results
+summary(fit_pois$object_gam)
+plot(fit_pois$object_gam)
+```
+ 
+
+### Interpretation
+
+Running the code above yields, for instance :
+
+- `fit_pois$pvalue`: Global interaction p-value = **3.13 × 10⁻⁹**, confirming a highly significant SNP–methylation interaction effect on the expected count response.  
+
+This result highlights the ability of the model to capture complex and significant interaction effects, even for count-type outcomes.  
+
+Users can further inspect the fitted model with :  
+
+```{r, eval=FALSE}
+summary(fit_pois$object_gam)  # parameter summaries
+plot(fit_pois$object_gam)     # functional interaction curve
+```
+
+
+ 

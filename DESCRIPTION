@@ -1,0 +1,25 @@
+Package: funInterMethSNP
+Title: Detecting SNP–Methylation Interactions on Phenotypes
+Version: 0.0.0.9000
+Authors@R: 
+    person("Yvelin", "Gansou", email = "yvelin.gansou.1@ulaval.ca", 
+           role = c("aut", "cre"))
+Description: Provides functional regression models framework to detect interaction effects 
+    between DNA methylation profiles and SNP genotypes on continuous, binary, 
+    or count outcomes. The methods rely on generalized additive models 
+    implemented in the mgcv package and include tools to reconstruct 
+    methylation curves, fit models, and test global SNP–methylation interactions.
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: 
+    R (>= 4.0)
+Imports: 
+    mgcv
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+LazyData: true
+LazyDataCompression: xz
