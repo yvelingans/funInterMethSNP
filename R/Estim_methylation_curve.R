@@ -11,7 +11,18 @@
 #'            (default = seq(0,1,length.out = 1000)).
 #'
 #' @return A matrix of smoothed methylation curves with individuals in rows and grid points in columns.
-#' @export
+#'
+#' @references
+#' Hansen, K. D., Langmead, B., & Irizarry, R. A. (2012).
+#' BSmooth: from whole genome bisulfite sequencing reads to differentially
+#' methylated regions. *Genome Biology*, 13, 1–10.
+#'
+#' Lakhal-Chaieb, L., Greenwood, C. M. T., Ouhourane, M., Zhao, K., Abdous, B.,
+#' & Oualkacha, K. (2017).
+#' A smoothed EM-algorithm for DNA methylation profiles from sequencing-based
+#' methods in cell lines or for a single cell type. *Statistical Applications in
+#' Genetics and Molecular Biology*, 16(5–6), 313–331.
+#'
 #' @examples
 #' \dontrun{
 #' # Simulate methylation data for 3 individuals and 500 CpGs

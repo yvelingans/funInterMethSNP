@@ -55,3 +55,14 @@ smoothed <- estim_methyl_curve(
 )
 }
 }
+\references{
+Hansen, K. D., Langmead, B., & Irizarry, R. A. (2012).
+BSmooth: from whole genome bisulfite sequencing reads to differentially
+methylated regions. \emph{Genome Biology}, 13, 1–10.
+
+Lakhal-Chaieb, L., Greenwood, C. M. T., Ouhourane, M., Zhao, K., Abdous, B.,
+& Oualkacha, K. (2017).
+A smoothed EM-algorithm for DNA methylation profiles from sequencing-based
+methods in cell lines or for a single cell type. \emph{Statistical Applications in
+Genetics and Molecular Biology}, 16(5–6), 313–331.
+}
